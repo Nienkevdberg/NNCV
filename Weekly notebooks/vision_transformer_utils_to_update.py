@@ -122,8 +122,13 @@ class Attention(nn.Module):
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
 
         #TODO: complete the forward pass
-        # q, k, v = 
-        
+        q, k, v = qkv.unbind(0)
+        attn = torch.matmul(q, k.transpose(-2, -1)) * self.scale
+        attn = torch.softmax(attn, dim=-1)
+        attn = self.attn_drop(attn)
+        x = torch.matmul(attn, v)
+        x = x.transpose(1, 2).reshape(B, N, C)
+        x = self.proj_drop(self.proj(x))
         return x, attn
 
 
@@ -204,7 +209,7 @@ class PatchEmbed(nn.Module):
         B, C, H, W = x.shape
         
         # TODO: Complete the forward pass
-        # x =
+        x = self.proj(x).flatten(2).transpose(1, 2)
 
         return x
 
