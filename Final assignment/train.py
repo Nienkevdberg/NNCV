@@ -83,7 +83,7 @@ def main(args):
     )
 
     # Create output directory if it doesn't exist
-    output_dir = os.path.join("checkpoints", args.experiment_id)
+    output_dir = os.path.join(os.path.dirname(__file__), "checkpoints", args.experiment_id)
     os.makedirs(output_dir, exist_ok=True)
 
     # Set seed for reproducability

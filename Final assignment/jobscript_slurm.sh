@@ -6,4 +6,8 @@
 #SBATCH --partition=gpu_a100
 #SBATCH --time=04:00:00
 
+
+cd $HOME/NNCV/Final assignment
+echo "Running from directory: $(pwd)"
+
 srun apptainer exec --nv --env-file .env container.sif /bin/bash main.sh
