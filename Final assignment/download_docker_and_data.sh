@@ -6,8 +6,6 @@
 #SBATCH --partition=gpu_mig
 #SBATCH --time=3:00:00
 
-export HF_TOKEN="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"
-
 # Pull container from dockerhub
 apptainer pull container.sif docker://cclaess/5lsm0:v1
 
