@@ -1,0 +1,73 @@
+_wandb:
+    value:
+        cli_version: 0.25.0
+        e:
+            cpchysyr0cccdjtj8zjdki6d2uqpf9i5:
+                args:
+                    - --epochs
+                    - "1"
+                    - --batch-size
+                    - "2"
+                codePath: Final assignment\train.py
+                codePathLocal: train.py
+                cpu_count: 6
+                cpu_count_logical: 12
+                cudaVersion: "12.2"
+                disk:
+                    /:
+                        total: "1000186310656"
+                        used: "36147068928"
+                email: nienkevdberg11@gmail.com
+                executable: D:\Master\Neural networks for computer vision\NNCV\.venv\Scripts\python.exe
+                git:
+                    commit: 9d81b1171d14eb84e6f7dbbb6b909282ec95243b
+                    remote: https://github.com/Nienkevdberg/NNCV.git
+                gpu: Quadro P1000
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Pascal
+                      cudaCores: 512
+                      memoryTotal: "4294967296"
+                      name: Quadro P1000
+                      uuid: GPU-99c56c24-fd3a-9e6a-dbfa-40e84dc62c00
+                host: "20192913"
+                memory:
+                    total: "16694005760"
+                os: Windows-11-10.0.22631-SP0
+                program: D:\Master\Neural networks for computer vision\NNCV\Final assignment\train.py
+                python: CPython 3.12.0
+                root: D:\Master\Neural networks for computer vision\NNCV\Final assignment
+                startedAt: "2026-03-12T10:20:02.574457Z"
+                writerId: cpchysyr0cccdjtj8zjdki6d2uqpf9i5
+        m: []
+        python_version: 3.12.0
+        t:
+            "1":
+                - 1
+                - 41
+            "2":
+                - 1
+                - 41
+            "3":
+                - 13
+                - 16
+            "4": 3.12.0
+            "5": 0.25.0
+            "8":
+                - 3
+            "12": 0.25.0
+            "13": windows-amd64
+batch_size:
+    value: 2
+data_dir:
+    value: ./data/cityscapes
+epochs:
+    value: 1
+experiment_id:
+    value: unet-training
+lr:
+    value: 0.001
+num_workers:
+    value: 10
+seed:
+    value: 42

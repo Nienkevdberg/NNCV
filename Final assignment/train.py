@@ -26,6 +26,10 @@ from torchvision.transforms.v2 import (
     Compose,
     Normalize,
     Resize,
+    RandomResizedCrop,
+    RandomHorizontalFlip,
+    ColorJitter,
+    GaussianBlur, 
     ToImage,
     ToDtype,
     InterpolationMode
@@ -93,18 +97,36 @@ def main(args):
 
     # Define the transforms to apply to the data
     img_transform = Compose([
-    ToImage(),
-    Resize((256, 256)),
-    ToDtype(torch.float32, scale=True),
-    Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-    ])
+        ToImage(),
+        RandomResizedCrop(size=(1024, 512), scale=(0.7, 1.0), ratio=(1.8, 2.4)),
+        RandomHorizontalFlip(p=0.5),
+        ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2, hue=0.02),
+        GaussianBlur(kernel_size=5, sigma=(0.1, 2.0)),
+        ToDtype(torch.float32, scale=True),
+        Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ])
 
     # Target transform (mask)
     target_transform = Compose([
         ToImage(),
-        Resize((256, 256), interpolation=InterpolationMode.NEAREST),
+        RandomResizedCrop(size=(1024, 512), scale=(0.7, 1.0), ratio=(1.8, 2.4), interpolation=InterpolationMode.NEAREST),
+        RandomHorizontalFlip(p=0.5),
         ToDtype(torch.int64),  # no scaling
     ])
+
+    valid_img_transform = Compose([
+        ToImage(),
+        Resize((1024, 512)),
+        ToDtype(torch.float32, scale=True),
+        Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+    ])
+
+    valid_target_transform = Compose([
+        ToImage(),
+        Resize((1024, 512), interpolation=InterpolationMode.NEAREST),
+        ToDtype(torch.int64),
+    ])
+
 
     # Load the dataset and make a split for training and validation
     train_dataset = Cityscapes(
@@ -121,8 +143,8 @@ def main(args):
         split="val",
         mode="fine",
         target_type="semantic",
-        transform=img_transform,
-        target_transform=target_transform,
+        transform=valid_img_transform,
+        target_transform= valid_target_transform,
     )
 
     train_dataloader = DataLoader(
@@ -145,7 +167,7 @@ def main(args):
     ).to(device)
 
     # Define the loss function
-    criterion = nn.CrossEntropyLoss(ignore_index=255)  # Ignore the void class
+    criterion = nn.CrossEntropyLoss(ignore_index=255) # Ignore the void class
 
     # Define the optimizer
     optimizer = AdamW(model.parameters(), lr=args.lr)
