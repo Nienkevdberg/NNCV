@@ -98,7 +98,7 @@ def main(args):
     # Define the transforms to apply to the data
     img_transform = Compose([
         ToImage(),
-        RandomResizedCrop(size=(1024, 512), scale=(0.7, 1.0), ratio=(1.8, 2.4)),
+        RandomResizedCrop(size=(512, 256), scale=(0.7, 1.0), ratio=(1.8, 2.4)),
         RandomHorizontalFlip(p=0.5),
         ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2, hue=0.02),
         GaussianBlur(kernel_size=5, sigma=(0.1, 2.0)),
@@ -109,21 +109,21 @@ def main(args):
     # Target transform (mask)
     target_transform = Compose([
         ToImage(),
-        RandomResizedCrop(size=(1024, 512), scale=(0.7, 1.0), ratio=(1.8, 2.4), interpolation=InterpolationMode.NEAREST),
+        RandomResizedCrop(size=(512, 256), scale=(0.7, 1.0), ratio=(1.8, 2.4), interpolation=InterpolationMode.NEAREST),
         RandomHorizontalFlip(p=0.5),
         ToDtype(torch.int64),  # no scaling
     ])
 
     valid_img_transform = Compose([
         ToImage(),
-        Resize((1024, 512)),
+        Resize((512, 256)),
         ToDtype(torch.float32, scale=True),
         Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
 
     valid_target_transform = Compose([
         ToImage(),
-        Resize((1024, 512), interpolation=InterpolationMode.NEAREST),
+        Resize((512, 256), interpolation=InterpolationMode.NEAREST),
         ToDtype(torch.int64),
     ])
 

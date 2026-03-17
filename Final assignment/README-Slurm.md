@@ -88,7 +88,7 @@ WANDB_DIR=/home/<username>/wandb
 
 ## Step 4: Submit a Job to the Cluster
 
-You will use the `jobscript_slurm.sh` file to submit a job to the SLURM cluster. This script specifies the resources and commands needed to execute your training. In our case, the file executes another bash cript, `main.sh`, inside the container you just downloaded.
+You will use the `jobscript_slurm.sh` file to submit a job to the SLURM cluster. This script specifies the resources and commands needed to execute your training. In our case, the file executes another bash script, `main.sh`, inside the container you just downloaded.
 
 Submit the job with the following command:
 
