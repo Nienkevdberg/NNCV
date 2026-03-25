@@ -57,7 +57,6 @@ class Model(nn.Module):
         x, f6 = self.down2(x)
         x, f10 = self.down3(x)
         x, f14 = self.down4(x)
-        x, f18 = self.down5(x)
 
         # Decoder
         x = self.up1(x, f14)
