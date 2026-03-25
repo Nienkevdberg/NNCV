@@ -98,13 +98,7 @@ class Down(nn.Module):
         self.dropout = nn.Dropout2d(dropout)
 
     def forward(self, x):
-        skip = self.conv(x) 
-
-        # fix mismatch by cropping skip
-        if x.shape[-2:] != skip.shape[-2:]:
-            _, _, h, w = x.shape
-            skip = skip[:, :, :h, :w]
-     
+        skip = self.conv(x)      
         x = self.pool(skip)         
         x = self.dropout(x)         
         return x, skip
@@ -120,10 +114,12 @@ class Up(nn.Module):
         
     def forward(self, x, skip):
         x = self.up(x)
-        x = self.dropout(x)
+        h = min(x.shape[2], skip.shape[2])
+        w = min(x.shape[3], skip.shape[3])
+        x = x[:, :, :h, :w]
+        skip = skip[:, :, :h, :w]
         x = torch.cat([x, skip], dim=1)
-        x = self.conv(x)
-        return x
+        return self.conv(x)
 
 class OutConv(nn.Module):
     def __init__(self, in_channels, out_channels):
