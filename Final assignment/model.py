@@ -98,7 +98,13 @@ class Down(nn.Module):
         self.dropout = nn.Dropout2d(dropout)
 
     def forward(self, x):
-        skip = self.conv(x)      
+        skip = self.conv(x) 
+
+        # fix mismatch by cropping skip
+        if x.shape[-2:] != skip.shape[-2:]:
+            _, _, h, w = x.shape
+            skip = skip[:, :, :h, :w]
+     
         x = self.pool(skip)         
         x = self.dropout(x)         
         return x, skip
