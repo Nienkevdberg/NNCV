@@ -11,7 +11,7 @@ class Model(nn.Module):
         self.down1 = Down(in_channels, 64)
         self.down2 = Down(64, 128)
         self.down3 = Down(128, 256)
-        self.down4 = Down(256, 512)   # bottleneck
+        self.down4 = Down(256, 512)
 
         # ---- Decoder ----
         self.up1 = Up(512 + 256, 256)
@@ -19,7 +19,6 @@ class Model(nn.Module):
         self.up3 = Up(128 + 64, 64)
         self.up4 = Up(64 + 64, 64)
 
-        # Output
         self.outc = OutConv(64, n_classes)
 
     def forward(self, x):
@@ -42,23 +41,36 @@ class Model(nn.Module):
         return self.outc(x)
 
 
+# -------------------------
+# Residual DoubleConv (CHANGED)
+# -------------------------
 class DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.double_conv = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
+
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
 
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(out_channels, out_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
         )
 
+        self.relu = nn.ReLU(inplace=True)
+
+        # match channels for residual
+        self.skip = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+
     def forward(self, x):
-        return self.double_conv(x)
+        res = self.skip(x)
+        x = self.conv(x)
+        return self.relu(x + res)
 
 
+# -------------------------
+# Down (UNCHANGED structurally)
+# -------------------------
 class Down(nn.Module):
     def __init__(self, in_channels, out_channels, dropout=0.2):
         super().__init__()
@@ -73,11 +85,56 @@ class Down(nn.Module):
         return x, skip
 
 
+# -------------------------
+# Attention Gate (NEW)
+# -------------------------
+class AttentionGate(nn.Module):
+    def __init__(self, F_g, F_l, F_int):
+        super().__init__()
+
+        self.W_g = nn.Sequential(
+            nn.Conv2d(F_g, F_int, 1, bias=False),
+            nn.BatchNorm2d(F_int)
+        )
+
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_l, F_int, 1, bias=False),
+            nn.BatchNorm2d(F_int)
+        )
+
+        self.psi = nn.Sequential(
+            nn.Conv2d(F_int, 1, 1, bias=False),
+            nn.Sigmoid()
+        )
+
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, g, x):
+        g1 = self.W_g(g)
+        x1 = self.W_x(x)
+
+        psi = self.relu(g1 + x1)
+        psi = self.psi(psi)
+
+        return x * psi
+
+
+# -------------------------
+# Up (MINIMAL CHANGE: attention added)
+# -------------------------
 class Up(nn.Module):
     def __init__(self, in_channels, out_channels, dropout=0.2):
         super().__init__()
         self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         self.dropout = nn.Dropout2d(dropout)
+
+        # infer skip channels from concatenation
+        self.att = AttentionGate(
+            F_g=in_channels - out_channels,
+            F_l=out_channels,
+            F_int=out_channels // 2
+        )
+
         self.conv = DoubleConv(in_channels, out_channels)
 
     def forward(self, x, skip):
@@ -89,6 +146,9 @@ class Up(nn.Module):
         w = min(x.shape[3], skip.shape[3])
         x = x[:, :, :h, :w]
         skip = skip[:, :, :h, :w]
+
+        # APPLY ATTENTION (NEW)
+        skip = self.att(x, skip)
 
         x = torch.cat([skip, x], dim=1)
         return self.conv(x)
