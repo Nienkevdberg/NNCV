@@ -26,7 +26,6 @@ from torchvision.transforms.v2 import (
     Compose,
     Normalize,
     Resize,
-    RandomResizedCrop,
     RandomHorizontalFlip,
     ColorJitter,
     GaussianBlur, 
@@ -148,7 +147,7 @@ def main(args):
     # Define the transforms to apply to the data
     img_transform = Compose([
         ToImage(),
-        RandomResizedCrop(size=(512, 256), scale=(0.7, 1.0), ratio=(1.8, 2.4)),
+        Resize((512, 256)),
         RandomHorizontalFlip(p=0.5),
         ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2, hue=0.02),
         GaussianBlur(kernel_size=5, sigma=(0.1, 2.0)),
@@ -159,7 +158,7 @@ def main(args):
     # Target transform (mask)
     target_transform = Compose([
         ToImage(),
-        RandomResizedCrop(size=(512, 256), scale=(0.7, 1.0), ratio=(1.8, 2.4), interpolation=InterpolationMode.NEAREST),
+        Resize((512, 256), interpolation=InterpolationMode.NEAREST),
         RandomHorizontalFlip(p=0.5),
         ToDtype(torch.int64),  # no scaling
     ])
