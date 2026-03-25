@@ -74,6 +74,56 @@ def get_args_parser():
     return parser
 
 
+def compute_iou(pred, target, num_classes=19, ignore_index=255):
+    pred = pred.flatten()
+    target = target.flatten()
+
+    mask = target != ignore_index
+    pred = pred[mask]
+    target = target[mask]
+
+    ious = []
+    for c in range(num_classes):
+        pred_c = (pred == c)
+        target_c = (target == c)
+
+        intersection = (pred_c & target_c).sum().item()
+        union = pred_c.sum().item() + target_c.sum().item() - intersection
+
+        if union == 0:
+            ious.append(float('nan'))
+        else:
+            ious.append(intersection / union)
+
+    return torch.tensor(ious).nanmean().item(), ious
+
+
+
+def compute_dice(pred, target, num_classes=19, ignore_index=255):
+    pred = pred.flatten()
+    target = target.flatten()
+
+    mask = target != ignore_index
+    pred = pred[mask]
+    target = target[mask]
+
+    dices = []
+    for c in range(num_classes):
+        pred_c = (pred == c)
+        target_c = (target == c)
+
+        inter = (2 * (pred_c & target_c).sum().item())
+        union = pred_c.sum().item() + target_c.sum().item()
+
+        if union == 0:
+            dices.append(float('nan'))
+        else:
+            dices.append(inter / union)
+
+    return torch.tensor(dices).nanmean().item(), dices
+
+
+
 def main(args):
     # Initialize wandb for logging
     wandb.init(
@@ -203,6 +253,8 @@ def main(args):
         model.eval()
         with torch.no_grad():
             losses = []
+            ious = []
+            dices = []
             for i, (images, labels) in enumerate(valid_dataloader):
 
                 labels = convert_to_train_id(labels)  # Convert class IDs to train IDs
@@ -213,6 +265,15 @@ def main(args):
                 outputs = model(images)
                 loss = criterion(outputs, labels)
                 losses.append(loss.item())
+
+                
+                preds = outputs.softmax(1).argmax(1)
+                iou, _ = compute_iou(preds, labels)
+                dice, _ = compute_dice(preds, labels)
+
+                ious.append(iou)
+                dices.append(dice)
+
             
                 if i == 0:
                     predictions = outputs.softmax(1).argmax(1)
@@ -235,9 +296,15 @@ def main(args):
                     }, step=(epoch + 1) * len(train_dataloader) - 1)
             
             valid_loss = sum(losses) / len(losses)
+            mean_iou = sum(ious) / len(ious)
+            mean_dice = sum(dices) / len(dices)
+
             wandb.log({
-                "valid_loss": valid_loss
+                "valid_loss": valid_loss,
+                "valid_mIoU": mean_iou,
+                "valid_mDice": mean_dice,
             }, step=(epoch + 1) * len(train_dataloader) - 1)
+
 
             if valid_loss < best_valid_loss:
                 best_valid_loss = valid_loss

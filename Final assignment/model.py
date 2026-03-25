@@ -25,20 +25,21 @@ class Model(nn.Module):
         """
         
         super().__init__()
-
-        # Encoding path
         self.in_channels = in_channels
-        self.inc = (DoubleConv(in_channels, 64))
-        self.down1 = (Down(64, 128))
-        self.down2 = (Down(128, 256))
-        self.down3 = (Down(256, 512))
-        self.down4 = (Down(512, 512))
 
-        # Decoding path
-        self.up1 = (Up(1024, 256))
-        self.up2 = (Up(512, 128))
-        self.up3 = (Up(256, 64))
-        self.up4 = (Up(128, 64))
+        # Encoder
+        self.down1 = Down(in_channels, 64)
+        self.down2 = Down(64, 128)
+        self.down3 = Down(128, 256)
+        self.down4 = Down(256, 512)
+        self.down5 = Down(512, 1024)
+
+        # Decoder
+        self.up1 = Up(1024 + 512, 512)
+        self.up2 = Up(512 + 256, 256)
+        self.up3 = Up(256 + 128, 128)
+        self.up4 = Up(128 + 64, 64)
+
         self.outc = (OutConv(64, n_classes))
 
     def forward(self, x):
@@ -51,28 +52,28 @@ class Model(nn.Module):
         # Check if the input tensor has the expected number of channels
         if x.shape[1] != self.in_channels:
             raise ValueError(f"Expected {self.in_channels} input channels, but got {x.shape[1]}")
-        
-        # Encoding path
-        x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
 
-        # Decoding path
-        x = self.up1(x5, x4)
-        x = self.up2(x, x3)
-        x = self.up3(x, x2)
-        x = self.up4(x, x1)
+        # Encoder (x_down, skip)
+        x, f2 = self.down1(x)
+        x, f6 = self.down2(x)
+        x, f10 = self.down3(x)
+        x, f14 = self.down4(x)
+        x, f18 = self.down5(x)
+
+        # Decoder
+        x = self.up1(x, f14)
+        x = self.up2(x, f10)
+        x = self.up3(x, f6)
+        x = self.up4(x, f2)
+ 
         logits = self.outc(x)
-
         return logits
         
 
 class DoubleConv(nn.Module):
     """(convolution => [BN] => ReLU => Dropout) * 2"""
 
-    def __init__(self, in_channels, out_channels, mid_channels=None, dropout=0.1):
+    def __init__(self, in_channels, out_channels, mid_channels=None):
         super().__init__()
         if not mid_channels:
             mid_channels = out_channels
@@ -80,11 +81,9 @@ class DoubleConv(nn.Module):
             nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(mid_channels),
             nn.ReLU(inplace=True),
-            nn.Dropout2d(dropout),
             nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-            nn.Dropout2d(dropout),
+            nn.ReLU(inplace=True)
         )
 
     def forward(self, x):
@@ -92,32 +91,33 @@ class DoubleConv(nn.Module):
 
 
 class Down(nn.Module):
-    """Downscaling with maxpool then double conv"""
-
-    def __init__(self, in_channels, out_channels, dropout=0.1):
+    def __init__(self, in_channels, out_channels, dropout=0.2):
         super().__init__()
-        self.maxpool_conv = nn.Sequential(
-            nn.MaxPool2d(2),
-            DoubleConv(in_channels, out_channels, dropout=dropout)
-        )
+        self.conv = DoubleConv(in_channels, out_channels)
+        self.pool = nn.MaxPool2d(2)
+        self.dropout = nn.Dropout2d(dropout)
 
     def forward(self, x):
-        return self.maxpool_conv(x)
+        skip = self.conv(x)      
+        x = self.pool(skip)         
+        x = self.dropout(x)         
+        return x, skip
 
 
 class Up(nn.Module):
     """Upscaling then double conv"""
-
-    def __init__(self, in_channels, out_channels, dropout=0.1, bilinear=True):
+    def __init__(self, in_channels, out_channels, dropout=0.2):
         super().__init__()
         self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        self.conv = DoubleConv(in_channels, out_channels, dropout=dropout)
+        self.dropout = nn.Dropout2d(dropout)
+        self.conv = DoubleConv(in_channels, out_channels)
         
-    def forward(self, x1, x2):
-        x1 = self.up(x1)
-        x = torch.cat([x2, x1], dim=1)
-        return self.conv(x)
-
+    def forward(self, x, skip):
+        x = self.up(x)
+        x = self.dropout(x)
+        x = torch.cat([x, skip], dim=1)
+        x = self.conv(x)
+        return x
 
 class OutConv(nn.Module):
     def __init__(self, in_channels, out_channels):
