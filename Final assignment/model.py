@@ -34,10 +34,10 @@ class Model(nn.Module):
         x, f14 = self.down4(x)
 
         # Decoder
-        x = self.up1(x, f10)
-        x = self.up2(x, f6)
-        x = self.up3(x, f2)
-        x = self.up4(x, f14)
+        x = self.up1(x, f14)
+        x = self.up2(x, f10)
+        x = self.up3(x, f6)
+        x = self.up4(x, f2)
 
         return self.outc(x)
 
