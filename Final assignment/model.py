@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import segmentation_models_pytorch as smp
 
 
 class Model(nn.Module):
@@ -139,3 +140,21 @@ class OutConv(nn.Module):
 
 #     def forward(self, x):
 #         return self.model(x)['out']  # DeepLab geeft een dict met 'out' en 'aux'
+
+
+class Model(nn.Module):
+    def __init__(self, in_channels=3, n_classes=19, backbone="mobilenet_v2", pretrained=True):
+        super().__init__()
+
+        encoder_weights = "imagenet" if pretrained else None
+
+        self.model = smp.DeepLabV3Plus(
+            encoder_name=backbone,          # "resnet50", "resnet101", "mobilenet_v2"
+            encoder_weights=encoder_weights,
+            in_channels=in_channels,
+            classes=n_classes,
+            activation=None                # logits (voor CrossEntropy)
+        )
+
+    def forward(self, x):
+        return self.model(x)
