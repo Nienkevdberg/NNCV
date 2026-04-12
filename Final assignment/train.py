@@ -69,6 +69,54 @@ def get_args_parser():
 
     return parser
 
+def compute_iou(pred, target, num_classes=19, ignore_index=255):
+    ious = []
+
+    pred = pred.view(-1)
+    target = target.view(-1)
+
+    mask = target != ignore_index
+    pred = pred[mask]
+    target = target[mask]
+
+    for cls in range(num_classes):
+        pred_inds = pred == cls
+        target_inds = target == cls
+
+        intersection = (pred_inds & target_inds).sum().float()
+        union = (pred_inds | target_inds).sum().float()
+
+        if union == 0:
+            continue
+
+        ious.append((intersection / union).item())
+
+    return sum(ious) / len(ious)
+
+
+def compute_dice(pred, target, num_classes=19, ignore_index=255):
+    dices = []
+
+    pred = pred.view(-1)
+    target = target.view(-1)
+
+    mask = target != ignore_index
+    pred = pred[mask]
+    target = target[mask]
+
+    for cls in range(num_classes):
+        pred_inds = pred == cls
+        target_inds = target == cls
+
+        intersection = (pred_inds & target_inds).sum().float()
+        total = pred_inds.sum().float() + target_inds.sum().float()
+
+        if total == 0:
+            continue
+
+        dices.append((2 * intersection / total).item())
+
+    return sum(dices) / len(dices)
 
 def main(args):
     # Initialize wandb for logging
@@ -94,7 +142,7 @@ def main(args):
     # Define the transforms to apply to the data
     img_transform = Compose([
         ToImage(),
-        Resize((512, 1024)),
+        Resize((256, 512)),
         ToDtype(torch.float32, scale=True),
         Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
@@ -102,7 +150,7 @@ def main(args):
     # Target transform (mask)
     target_transform = Compose([
         ToImage(),
-        Resize((512, 1024), interpolation=InterpolationMode.NEAREST),
+        Resize((256, 512), interpolation=InterpolationMode.NEAREST),
         ToDtype(torch.int64),  # no scaling
     ])
 
@@ -181,6 +229,8 @@ def main(args):
         model.eval()
         with torch.no_grad():
             losses = []
+            ious = []
+            dices = []
             for i, (images, labels) in enumerate(valid_dataloader):
 
                 labels = convert_to_train_id(labels)  # Convert class IDs to train IDs
@@ -191,9 +241,16 @@ def main(args):
                 outputs = model(images)
                 loss = criterion(outputs, labels)
                 losses.append(loss.item())
+
+                preds = torch.argmax(outputs, dim=1)
+                iou = compute_iou(preds, labels)
+                dice = compute_dice(preds, labels)
+
+                ious.append(iou)
+                dices.append(dice)
             
                 if i == 0:
-                    predictions = outputs.softmax(1).argmax(1)
+                    predictions = preds
 
                     predictions = predictions.unsqueeze(1)
                     labels = labels.unsqueeze(1)
@@ -213,8 +270,12 @@ def main(args):
                     }, step=(epoch + 1) * len(train_dataloader) - 1)
             
             valid_loss = sum(losses) / len(losses)
+            mean_iou = sum(ious) / len(ious)
+            mean_dice = sum(dices) / len(dices)
             wandb.log({
-                "valid_loss": valid_loss
+                "valid_loss": valid_loss,
+                "val_iou": mean_iou,
+                "val_dice": mean_dice
             }, step=(epoch + 1) * len(train_dataloader) - 1)
 
             if valid_loss < best_valid_loss:
