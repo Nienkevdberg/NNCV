@@ -1,0 +1,68 @@
+_wandb:
+    value:
+        cli_version: 0.24.1
+        e:
+            c2qxu1hxv2sd24td5gngze6yb17s01s8:
+                codePath: Final assignment\train.py
+                codePathLocal: train.py
+                cpu_count: 6
+                cpu_count_logical: 12
+                cudaVersion: "12.2"
+                disk:
+                    /:
+                        total: "1000186310656"
+                        used: "98067947520"
+                email: nienkevdberg11@gmail.com
+                executable: C:\Users\20192913\Anaconda3\envs\base_new\python.exe
+                git:
+                    commit: 38b7eafb376e3c2f541e6d0c0da0a7ab33c81933
+                    remote: https://github.com/Nienkevdberg/NNCV.git
+                gpu: Quadro P1000
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Pascal
+                      cudaCores: 512
+                      memoryTotal: "4294967296"
+                      name: Quadro P1000
+                      uuid: GPU-99c56c24-fd3a-9e6a-dbfa-40e84dc62c00
+                host: "20192913"
+                memory:
+                    total: "16694005760"
+                os: Windows-11-10.0.22631-SP0
+                program: D:\Master\Neural networks for computer vision\NNCV\Final assignment\train.py
+                python: CPython 3.12.11
+                root: D:\Master\Neural networks for computer vision\NNCV\Final assignment
+                startedAt: "2026-04-12T10:39:07.204143Z"
+                writerId: c2qxu1hxv2sd24td5gngze6yb17s01s8
+        m: []
+        python_version: 3.12.11
+        t:
+            "1":
+                - 1
+                - 41
+            "2":
+                - 1
+                - 41
+            "3":
+                - 13
+                - 16
+            "4": 3.12.11
+            "5": 0.24.1
+            "8":
+                - 3
+            "12": 0.24.1
+            "13": windows-amd64
+batch_size:
+    value: 16
+data_dir:
+    value: ./data/cityscapes
+epochs:
+    value: 10
+experiment_id:
+    value: unet-training
+lr:
+    value: 0.001
+num_workers:
+    value: 10
+seed:
+    value: 42

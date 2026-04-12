@@ -1,0 +1,40 @@
+{
+  "os":  "Windows-11-10.0.22631-SP0",
+  "python":  "CPython 3.12.11",
+  "startedAt":  "2026-04-12T10:39:07.204143Z",
+  "program":  "D:\\Master\\Neural networks for computer vision\\NNCV\\Final assignment\\train.py",
+  "codePath":  "Final assignment\\train.py",
+  "codePathLocal":  "train.py",
+  "git":  {
+    "remote":  "https://github.com/Nienkevdberg/NNCV.git",
+    "commit":  "38b7eafb376e3c2f541e6d0c0da0a7ab33c81933"
+  },
+  "email":  "nienkevdberg11@gmail.com",
+  "root":  "D:\\Master\\Neural networks for computer vision\\NNCV\\Final assignment",
+  "host":  "20192913",
+  "executable":  "C:\\Users\\20192913\\Anaconda3\\envs\\base_new\\python.exe",
+  "cpu_count":  6,
+  "cpu_count_logical":  12,
+  "gpu":  "Quadro P1000",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "1000186310656",
+      "used":  "98067947520"
+    }
+  },
+  "memory":  {
+    "total":  "16694005760"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "Quadro P1000",
+      "memoryTotal":  "4294967296",
+      "cudaCores":  512,
+      "architecture":  "Pascal",
+      "uuid":  "GPU-99c56c24-fd3a-9e6a-dbfa-40e84dc62c00"
+    }
+  ],
+  "cudaVersion":  "12.2",
+  "writerId":  "c2qxu1hxv2sd24td5gngze6yb17s01s8"
+}

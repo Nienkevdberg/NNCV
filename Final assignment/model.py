@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import segmentation_models_pytorch as smp
+import torchvision.models.segmentation as segm
 
 
 # class Model(nn.Module):
@@ -126,35 +126,19 @@ import segmentation_models_pytorch as smp
 #     def forward(self, x):
 #         return self.conv(x)
 
-# class Model(nn.Module):
-#     def __init__(self, in_channels=3, n_classes=19, pretrained=True):
-#         super().__init__()
-#         # Laad DeepLabV3 met ResNet50 backbone
-#         self.model = segm.deeplabv3_resnet50(pretrained=pretrained, progress=True)
-        
-#         # Vervang de laatste classifier zodat output n_classes is
-#         self.model.classifier[-1] = nn.Conv2d(256, n_classes, kernel_size=1)
-        
-#         # Als je ook low-level features wilt finetunen:
-#         # self.model.aux_classifier[-1] = nn.Conv2d(256, n_classes, kernel_size=1)
-
-#     def forward(self, x):
-#         return self.model(x)['out']  # DeepLab geeft een dict met 'out' en 'aux'
-
-
 class Model(nn.Module):
-    def __init__(self, in_channels=3, n_classes=19, backbone="mobilenet_v2", pretrained=True):
+    def __init__(self, in_channels=3, n_classes=19, pretrained=True):
         super().__init__()
-
-        encoder_weights = "imagenet" if pretrained else None
-
-        self.model = smp.DeepLabV3Plus(
-            encoder_name=backbone,          # "resnet50", "resnet101", "mobilenet_v2"
-            encoder_weights=encoder_weights,
-            in_channels=in_channels,
-            classes=n_classes,
-            activation=None                # logits (voor CrossEntropy)
-        )
+        # Laad DeepLabV3 met ResNet50 backbone
+        self.model = segm.deeplabv3_resnet50(pretrained=pretrained, progress=True)
+        
+        # Vervang de laatste classifier zodat output n_classes is
+        self.model.classifier[-1] = nn.Conv2d(256, n_classes, kernel_size=1)
+        
+        # Als je ook low-level features wilt finetunen:
+        # self.model.aux_classifier[-1] = nn.Conv2d(256, n_classes, kernel_size=1)
 
     def forward(self, x):
-        return self.model(x)
+        return self.model(x)['out']  # DeepLab geeft een dict met 'out' en 'aux'
+
+
