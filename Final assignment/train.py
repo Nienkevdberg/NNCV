@@ -28,7 +28,9 @@ from torchvision.transforms.v2 import (
     Resize,
     ToImage,
     ToDtype,
-    InterpolationMode
+    InterpolationMode,
+    RandomHorizontalFlip,
+    ColorJitter
 )
 
 from model import Model
@@ -145,6 +147,8 @@ def main(args):
         Resize((256, 512)),
         ToDtype(torch.float32, scale=True),
         Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        RandomHorizontalFlip(p=0.5),
+        ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
     ])
 
     # Target transform (mask)
@@ -152,6 +156,7 @@ def main(args):
         ToImage(),
         Resize((256, 512), interpolation=InterpolationMode.NEAREST),
         ToDtype(torch.int64),  # no scaling
+        RandomHorizontalFlip(p=0.5),
     ])
 
     # Load the dataset and make a split for training and validation
