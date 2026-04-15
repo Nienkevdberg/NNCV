@@ -120,6 +120,32 @@ def compute_dice(pred, target, num_classes=19, ignore_index=255):
 
     return sum(dices) / len(dices)
 
+class DiceLoss(nn.Module):
+    def __init__(self, num_classes=19, ignore_index=255, smooth=1.0):
+        super().__init__()
+        self.num_classes = num_classes
+        self.ignore_index = ignore_index
+        self.smooth = smooth
+
+    def forward(self, logits, targets):
+        probs = torch.softmax(logits, dim=1)
+
+        targets = targets.clone()
+        valid_mask = targets != self.ignore_index
+        targets[~valid_mask] = 0
+
+        targets_onehot = torch.zeros_like(probs)
+        targets_onehot.scatter_(1, targets.unsqueeze(1), 1)
+        targets_onehot = targets_onehot * valid_mask.unsqueeze(1)
+
+        dims = (0, 2, 3)
+        intersection = torch.sum(probs * targets_onehot, dims)
+        union = torch.sum(probs + targets_onehot, dims)
+
+        dice = (2. * intersection + self.smooth) / (union + self.smooth)
+        return 1 - dice.mean()
+
+
 def main(args):
     # Initialize wandb for logging
     wandb.init(
@@ -197,7 +223,10 @@ def main(args):
     ).to(device)
 
     # Define the loss function
-    criterion = nn.CrossEntropyLoss(ignore_index=255)  # Ignore the void class
+    criterion_ce = nn.CrossEntropyLoss(ignore_index=255)
+    criterion_dice = DiceLoss(num_classes=19, ignore_index=255)
+
+    criterion = nn.CrossEntropyLoss(ignore_index=255)
 
     # Define the optimizer
     optimizer = AdamW(model.parameters(), lr=args.lr)
@@ -218,10 +247,16 @@ def main(args):
             labels = labels.long().squeeze(1)  # Remove channel dimension
 
             optimizer.zero_grad()
+            
             outputs = model(images)
-            loss = criterion(outputs, labels)
+
+            ce_loss = criterion_ce(outputs, labels)
+            dice_loss = criterion_dice(outputs, labels)
+
+            loss = ce_loss + 0.5 * dice_loss
             loss.backward()
             optimizer.step()
+
 
             wandb.log({
                 "train_loss": loss.item(),
