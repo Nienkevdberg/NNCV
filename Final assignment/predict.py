@@ -39,7 +39,7 @@ def preprocess(img: Image.Image) -> torch.Tensor:
     # Return a tensor suitable for model input
     transform = Compose([
         ToImage(),
-        Resize(size=(256, 256), interpolation=InterpolationMode.BILINEAR),
+        Resize(size=(256, 512), interpolation=InterpolationMode.BILINEAR),
         ToDtype(dtype=torch.float32, scale=True),
         Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
@@ -53,8 +53,7 @@ def postprocess(pred: torch.Tensor, original_shape: tuple) -> np.ndarray:
     # Implement your postprocessing steps here
     # For example, resizing back to original shape, converting to color mask, etc.
     # Return a numpy array suitable for saving as an image
-    pred_soft = nn.Softmax(dim=1)(pred)
-    pred_max = torch.argmax(pred_soft, dim=1, keepdim=True)  # Get the class with the highest probability
+    pred_max = torch.argmax(pred, dim=1, keepdim=True)
     prediction = Resize(size=original_shape, interpolation=InterpolationMode.NEAREST)(pred_max)
 
     prediction_numpy = prediction.cpu().detach().numpy()
@@ -66,18 +65,10 @@ def postprocess(pred: torch.Tensor, original_shape: tuple) -> np.ndarray:
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    # Load model
+    
     model = Model()
-    state_dict = torch.load(
-        MODEL_PATH, 
-        map_location=device,
-        weights_only=True,
-    )
-    model.load_state_dict(
-        state_dict, 
-        strict=True,  # Ensure the state dict matches the model architecture
-    )
-    model.eval().to(device)
+    model.to(device)
+    model.eval()
 
     image_files = list(Path(IMAGE_DIR).glob("*.png"))  # DO NOT CHANGE, IMAGES WILL BE PROVIDED IN THIS FORMAT
     print(f"Found {len(image_files)} images to process.")
