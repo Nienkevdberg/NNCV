@@ -117,6 +117,9 @@ class DiceLoss(nn.Module):
 
 
 def main(args):
+    
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
 
     wandb.init(
         project="5lsm0-cityscapes-segmentation",
@@ -250,6 +253,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--num-workers", type=int, default=8)
+    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--experiment-id", type=str, default="exp")
 
     args = parser.parse_args()
