@@ -233,8 +233,10 @@ def main(args):
         if mean_iou > best_iou:
             best_iou = mean_iou
 
-            if best_path:
+                        
+            if os.path.exists(best_path):
                 os.remove(best_path)
+
 
             best_path = os.path.join(
                 "checkpoints",
