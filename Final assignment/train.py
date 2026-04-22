@@ -170,7 +170,7 @@ def main(args):
 
     model = Model(n_classes=19).to(device)
 
-    class_weights = torch.ones(19)
+    class_weights = torch.ones(19).to(device)
     small_classes = [5,6,7,11,12,17,18]
 
     for c in small_classes:
