@@ -170,7 +170,13 @@ def main(args):
 
     model = Model(n_classes=19).to(device)
 
-    ce_loss = nn.CrossEntropyLoss(ignore_index=255)
+    class_weights = torch.ones(19)
+    small_classes = [5,6,7,11,12,17,18]
+
+    for c in small_classes:
+        class_weights[c] = 2.0
+
+    ce_loss = nn.CrossEntropyLoss(weight=class_weights, ignore_index=255)
     dice_loss_fn = DiceLoss()
 
     optimizer = AdamW(model.parameters(), lr=args.lr)
@@ -189,9 +195,9 @@ def main(args):
             images = images.to(device)
             labels = labels.to(device).squeeze(1)
 
-            #if torch.rand(1) < 0.5:
-            #    images = torch.flip(images, dims=[3])
-            #    labels = torch.flip(labels, dims=[2])
+            if torch.rand(1) < 0.5:
+                images = torch.flip(images, dims=[3])
+                labels = torch.flip(labels, dims=[2])
 
             optimizer.zero_grad()
 
