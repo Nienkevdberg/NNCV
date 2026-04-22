@@ -39,7 +39,7 @@ def preprocess(img: Image.Image) -> torch.Tensor:
     # Return a tensor suitable for model input
     transform = Compose([
         ToImage(),
-        Resize(size=(256, 512), interpolation=InterpolationMode.BILINEAR),
+        Resize(size=(384, 768), interpolation=InterpolationMode.BILINEAR),
         ToDtype(dtype=torch.float32, scale=True),
         Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
@@ -67,6 +67,7 @@ def main():
 
     
     model = Model()
+    model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
     model.to(device)
     model.eval()
 
@@ -82,7 +83,17 @@ def main():
             img_tensor = preprocess(img).to(device)
 
             # Forward pass
-            pred = model(img_tensor)
+            pred1 = model(img_tensor)
+
+            # flipped input
+            img_flip = torch.flip(img_tensor, dims=[3])
+            pred2 = model(img_flip)
+
+            # flip terug
+            pred2 = torch.flip(pred2, dims=[3])
+
+            # gemiddelde
+            pred = (pred1 + pred2) / 2
 
             # Postprocess to segmentation mask
             seg_pred = postprocess(pred, original_shape)

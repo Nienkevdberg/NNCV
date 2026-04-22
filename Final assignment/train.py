@@ -14,7 +14,8 @@ from torchvision.transforms.v2 import (
     Resize,
     ToImage,
     ToDtype,
-    InterpolationMode
+    InterpolationMode,
+    RandomHorizontalFlip,
 )
 
 from model import Model
@@ -131,7 +132,7 @@ def main(args):
 
     img_transform = Compose([
         ToImage(),
-        Resize((256, 512)),
+        Resize((384, 768)),
         ToDtype(torch.float32, scale=True),
         Normalize((0.485, 0.456, 0.406),
                   (0.229, 0.224, 0.225)),
@@ -139,7 +140,7 @@ def main(args):
 
     target_transform = Compose([
         ToImage(),
-        Resize((256, 512), interpolation=InterpolationMode.NEAREST),
+        Resize((384, 768), interpolation=InterpolationMode.NEAREST),
         ToDtype(torch.int64),
     ])
 
@@ -188,11 +189,15 @@ def main(args):
             images = images.to(device)
             labels = labels.to(device).squeeze(1)
 
+            #if torch.rand(1) < 0.5:
+            #    images = torch.flip(images, dims=[3])
+            #    labels = torch.flip(labels, dims=[2])
+
             optimizer.zero_grad()
 
             outputs = model(images)
 
-            loss = ce_loss(outputs, labels) + 0.5 * dice_loss_fn(outputs, labels)
+            loss = ce_loss(outputs, labels) + 1.0 * dice_loss_fn(outputs, labels)
 
             loss.backward()
             optimizer.step()
@@ -242,8 +247,6 @@ def main(args):
             )
 
             torch.save(model.state_dict(), best_path)
-
-    print("Done!")
 
 
 if __name__ == "__main__":
