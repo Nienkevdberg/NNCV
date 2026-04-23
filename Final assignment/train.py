@@ -116,6 +116,52 @@ class DiceLoss(nn.Module):
         dice = (2 * inter + self.smooth) / (union + self.smooth)
         return 1 - dice.mean()
 
+import torch.nn.functional as F
+
+def tta_predict(model, images, scales=(0.75, 1.0, 1.25)):
+    """
+    images: (B, C, H, W)
+    returns: averaged logits (B, num_classes, H, W)
+    """
+    _, _, H, W = images.shape
+    logits_sum = 0.0
+    n = 0
+
+    for scale in scales:
+        for flip in [False, True]:
+            x = images
+
+            # flip
+            if flip:
+                x = torch.flip(x, dims=[3])
+
+            # scale input
+            x = F.interpolate(
+                x,
+                scale_factor=scale,
+                mode="bilinear",
+                align_corners=False
+            )
+
+            logits = model(x)
+
+            # undo flip
+            if flip:
+                logits = torch.flip(logits, dims=[3])
+
+            # resize logits back
+            logits = F.interpolate(
+                logits,
+                size=(H, W),
+                mode="bilinear",
+                align_corners=False
+            )
+
+            logits_sum += logits
+            n += 1
+
+    return logits_sum / n
+
 
 def main(args):
     
@@ -203,7 +249,7 @@ def main(args):
 
             outputs = model(images)
 
-            loss = ce_loss(outputs, labels) + 1.0 * dice_loss_fn(outputs, labels)
+            loss = ce_loss(outputs, labels) + 1 * dice_loss_fn(outputs, labels)
 
             loss.backward()
             optimizer.step()
@@ -222,9 +268,9 @@ def main(args):
                 images = images.to(device)
                 labels = labels.to(device).squeeze(1)
 
-                outputs = model(images)
+                outputs = tta_predict(model, images)
 
-                loss = ce_loss(outputs, labels) + 0.5 * dice_loss_fn(outputs, labels)
+                loss = ce_loss(outputs, labels) + 1 * dice_loss_fn(outputs, labels)
 
                 preds = torch.argmax(outputs, dim=1)
 
