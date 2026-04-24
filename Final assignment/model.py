@@ -23,7 +23,7 @@ class Model(nn.Module):
 
         if self.model.aux_classifier is not None:
             self.model.aux_classifier[-1] = nn.Conv2d(
-                in_channels=1024,
+                in_channels=256,
                 out_channels=n_classes,
                 kernel_size=1
             )
