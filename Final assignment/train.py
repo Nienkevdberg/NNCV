@@ -136,7 +136,13 @@ def tta_predict(model, images, scales=(0.75, 1.0, 1.25)):
                 align_corners=False
             )
 
-            logits = model(x)
+            outputs  = model(x)
+            
+            if isinstance(outputs, tuple):
+                logits = outputs[0]
+            else:
+                logits = outputs
+
 
             # undo flip
             if flip:
