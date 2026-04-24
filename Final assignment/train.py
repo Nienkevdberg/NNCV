@@ -15,11 +15,9 @@ from torchvision.transforms.v2 import (
     ToImage,
     ToDtype,
     InterpolationMode,
-    RandomHorizontalFlip,
 )
 
 from model import Model
-
 
 
 id_to_trainid = {cls.id: cls.train_id for cls in Cityscapes.classes}
@@ -27,10 +25,8 @@ id_to_trainid = {cls.id: cls.train_id for cls in Cityscapes.classes}
 def convert_to_train_id(label_img: torch.Tensor) -> torch.Tensor:
     return label_img.apply_(lambda x: id_to_trainid[x])
 
-
 train_id_to_color = {cls.train_id: cls.color for cls in Cityscapes.classes if cls.train_id != 255}
 train_id_to_color[255] = (0, 0, 0)
-
 
 def convert_train_id_to_color(prediction: torch.Tensor) -> torch.Tensor:
     batch, _, h, w = prediction.shape
@@ -42,7 +38,6 @@ def convert_train_id_to_color(prediction: torch.Tensor) -> torch.Tensor:
             out[:, i][mask] = color[i]
 
     return out
-
 
 def compute_iou(pred, target, num_classes=19, ignore_index=255):
     ious = []
@@ -67,7 +62,6 @@ def compute_iou(pred, target, num_classes=19, ignore_index=255):
 
     return sum(ious) / len(ious) if len(ious) > 0 else 0.0
 
-
 def compute_dice(pred, target, num_classes=19, ignore_index=255):
     dices = []
     pred = pred.view(-1)
@@ -90,7 +84,6 @@ def compute_dice(pred, target, num_classes=19, ignore_index=255):
         dices.append((2 * intersection / total).item())
 
     return sum(dices) / len(dices) if len(dices) > 0 else 0.0
-
 
 class DiceLoss(nn.Module):
     def __init__(self, ignore_index=255, smooth=1.0):
@@ -157,11 +150,13 @@ def tta_predict(model, images, scales=(0.75, 1.0, 1.25)):
                 align_corners=False
             )
 
-            logits_sum += logits
+            
+            if isinstance(logits, tuple):
+                logits = logits[0]
+
             n += 1
 
     return logits_sum / n
-
 
 def main(args):
     
@@ -216,13 +211,7 @@ def main(args):
 
     model = Model(n_classes=19).to(device)
 
-    class_weights = torch.ones(19).to(device)
-    small_classes = [5,6,7,11,12,17,18]
-
-    for c in small_classes:
-        class_weights[c] = 2.0
-
-    ce_loss = nn.CrossEntropyLoss(weight=class_weights, ignore_index=255)
+    ce_loss = nn.CrossEntropyLoss(ignore_index=255)
     dice_loss_fn = DiceLoss()
 
     optimizer = AdamW(model.parameters(), lr=args.lr)
@@ -247,9 +236,15 @@ def main(args):
 
             optimizer.zero_grad()
 
-            outputs = model(images)
+            #outputs = model(images)
+            #loss = ce_loss(outputs, labels) + 0.3 * dice_loss_fn(outputs, labels)
 
-            loss = ce_loss(outputs, labels) + 1 * dice_loss_fn(outputs, labels)
+            outputs, aux_outputs = model(images)
+
+            main_loss = ce_loss(outputs, labels) + dice_loss_fn(outputs, labels)
+            aux_loss  = ce_loss(aux_outputs, labels)
+
+            loss = main_loss + 0.4 * aux_loss
 
             loss.backward()
             optimizer.step()
@@ -268,11 +263,14 @@ def main(args):
                 images = images.to(device)
                 labels = labels.to(device).squeeze(1)
 
-                outputs = tta_predict(model, images)
+                outputs = model(images)
+                if isinstance(outputs, tuple):
+                    outputs = outputs[0]
 
-                loss = ce_loss(outputs, labels) + 1 * dice_loss_fn(outputs, labels)
+                loss = ce_loss(outputs, labels) + dice_loss_fn(outputs, labels)
 
-                preds = torch.argmax(outputs, dim=1)
+                outputs_tta = tta_predict(model, images)
+                preds = torch.argmax(outputs_tta, dim=1)
 
                 losses.append(loss.item())
                 ious.append(compute_iou(preds, labels))
@@ -299,7 +297,6 @@ def main(args):
             )
 
             torch.save(model.state_dict(), best_path)
-
 
 if __name__ == "__main__":
     parser = ArgumentParser()
