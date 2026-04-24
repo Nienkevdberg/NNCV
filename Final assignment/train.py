@@ -111,20 +111,21 @@ class DiceLoss(nn.Module):
 
 import torch.nn.functional as F
 
+
 def tta_predict(model, images, scales=(0.75, 1.0, 1.25)):
     """
     images: (B, C, H, W)
     returns: averaged logits (B, num_classes, H, W)
     """
     _, _, H, W = images.shape
-    logits_sum = 0.0
+    logits_sum = None
     n = 0
 
     for scale in scales:
         for flip in [False, True]:
             x = images
 
-            # flip
+            # flip input
             if flip:
                 x = torch.flip(x, dims=[3])
 
@@ -136,19 +137,15 @@ def tta_predict(model, images, scales=(0.75, 1.0, 1.25)):
                 align_corners=False
             )
 
-            outputs  = model(x)
-            
-            if isinstance(outputs, tuple):
-                logits = outputs[0]
-            else:
-                logits = outputs
-
+            # forward
+            outputs = model(x)
+            logits = outputs[0] if isinstance(outputs, tuple) else outputs
 
             # undo flip
             if flip:
                 logits = torch.flip(logits, dims=[3])
 
-            # resize logits back
+            # resize back
             logits = F.interpolate(
                 logits,
                 size=(H, W),
@@ -156,9 +153,10 @@ def tta_predict(model, images, scales=(0.75, 1.0, 1.25)):
                 align_corners=False
             )
 
-            
-            if isinstance(logits, tuple):
-                logits = logits[0]
+            if logits_sum is None:
+                logits_sum = logits
+            else:
+                logits_sum = logits_sum + logits
 
             n += 1
 
