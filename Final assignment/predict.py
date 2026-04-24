@@ -32,7 +32,6 @@ IMAGE_DIR = "/data"
 OUTPUT_DIR = "/output"
 MODEL_PATH = "/app/model.pt"
 
-
 def preprocess(img: Image.Image) -> torch.Tensor:
     # Implement your preprocessing steps here
     # For example, resizing, normalization, etc.
@@ -48,7 +47,6 @@ def preprocess(img: Image.Image) -> torch.Tensor:
     img = img.unsqueeze(0)  # Add batch dimension
     return img
 
-
 def postprocess(pred: torch.Tensor, original_shape: tuple) -> np.ndarray:
     # Implement your postprocessing steps here
     # For example, resizing back to original shape, converting to color mask, etc.
@@ -60,7 +58,6 @@ def postprocess(pred: torch.Tensor, original_shape: tuple) -> np.ndarray:
     prediction_numpy = prediction_numpy.squeeze()  # Remove batch and channel dimensions if necessary
 
     return prediction_numpy
-
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -82,18 +79,18 @@ def main():
             # Preprocess
             img_tensor = preprocess(img).to(device)
 
-            # Forward pass
-            pred1 = model(img_tensor)
-
             # flipped input
             img_flip = torch.flip(img_tensor, dims=[3])
-            pred2 = model(img_flip)
+            out1 = model(img_tensor)
+            out2 = model(img_flip)
 
-            # flip terug
-            pred2 = torch.flip(pred2, dims=[3])
+            if isinstance(out1, tuple):
+                out1 = out1[0]
+            if isinstance(out2, tuple):
+                out2 = out2[0]
 
-            # gemiddelde
-            pred = (pred1 + pred2) / 2
+            out2 = torch.flip(out2, dims=[3])
+            pred = (out1 + out2) / 2
 
             # Postprocess to segmentation mask
             seg_pred = postprocess(pred, original_shape)
@@ -105,6 +102,7 @@ def main():
             # Save predicted mask
             Image.fromarray(seg_pred.astype(np.uint8)).save(out_path)
 
-
 if __name__ == "__main__":
     main()
+
+
