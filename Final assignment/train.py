@@ -177,7 +177,7 @@ def main(args):
 
     img_transform = Compose([
         ToImage(),
-        Resize((256, 512)),
+        Resize((384,768)),
         ToDtype(torch.float32, scale=True),
         Normalize((0.485, 0.456, 0.406),
                   (0.229, 0.224, 0.225)),
@@ -185,7 +185,7 @@ def main(args):
 
     target_transform = Compose([
         ToImage(),
-        Resize((256, 512), interpolation=InterpolationMode.NEAREST),
+        Resize((384,768), interpolation=InterpolationMode.NEAREST),
         ToDtype(torch.int64),
     ])
 
@@ -240,14 +240,14 @@ def main(args):
 
             optimizer.zero_grad()
 
-            outputs = model(images)
+            outputs, aux_outputs = model(images)
 
-            # main_loss = ce_loss(outputs, labels) + 0.7 * dice_loss_fn(outputs, labels)
-            # aux_loss  = ce_loss(aux_outputs, labels)
+            main_loss = ce_loss(outputs, labels) + 0.5 * dice_loss_fn(outputs, labels)
+            aux_loss  = ce_loss(aux_outputs, labels)
 
-            # loss = main_loss + 0.4 * aux_loss
+            loss = main_loss + 0.4 * aux_loss
 
-            loss = ce_loss(outputs, labels) + 0.5* dice_loss_fn(outputs, labels)
+            #loss = ce_loss(outputs, labels) + 0.5* dice_loss_fn(outputs, labels)
 
             loss.backward()
             optimizer.step()
