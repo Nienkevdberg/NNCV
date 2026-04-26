@@ -240,7 +240,7 @@ def main(args):
 
             optimizer.zero_grad()
 
-            outputs, aux_outputs = model(images)
+            outputs = model(images)
 
             # main_loss = ce_loss(outputs, labels) + 0.7 * dice_loss_fn(outputs, labels)
             # aux_loss  = ce_loss(aux_outputs, labels)
@@ -278,6 +278,28 @@ def main(args):
                 losses.append(loss.item())
                 ious.append(compute_iou(preds, labels))
                 dices.append(compute_dice(preds, labels))
+
+                                
+                if i == 0:
+                    predictions = outputs.softmax(1).argmax(1)
+
+                    predictions = predictions.unsqueeze(1)
+                    labels = labels.unsqueeze(1)
+
+                    predictions = convert_train_id_to_color(predictions)
+                    labels = convert_train_id_to_color(labels)
+
+                    predictions_img = make_grid(predictions.cpu(), nrow=8)
+                    labels_img = make_grid(labels.cpu(), nrow=8)
+
+                    predictions_img = predictions_img.permute(1, 2, 0).numpy()
+                    labels_img = labels_img.permute(1, 2, 0).numpy()
+
+                    wandb.log({
+                        "predictions": [wandb.Image(predictions_img)],
+                        "labels": [wandb.Image(labels_img)],
+                    })
+
 
         mean_iou = sum(ious) / len(ious)
         mean_dice = sum(dices) / len(dices)
