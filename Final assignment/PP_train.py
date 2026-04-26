@@ -17,7 +17,7 @@ from torchvision.transforms.v2 import (
     InterpolationMode,
 )
 
-from model import Model
+from PP_model import Model
 
 
 id_to_trainid = {cls.id: cls.train_id for cls in Cityscapes.classes}
@@ -25,20 +25,7 @@ id_to_trainid = {cls.id: cls.train_id for cls in Cityscapes.classes}
 def convert_to_train_id(label_img: torch.Tensor) -> torch.Tensor:
     return label_img.apply_(lambda x: id_to_trainid[x])
 
-train_id_to_color = {cls.train_id: cls.color for cls in Cityscapes.classes if cls.train_id != 255}
-train_id_to_color[255] = (0, 0, 0)
-
-def convert_train_id_to_color(prediction: torch.Tensor) -> torch.Tensor:
-    batch, _, h, w = prediction.shape
-    out = torch.zeros((batch, 3, h, w), dtype=torch.uint8)
-
-    for train_id, color in train_id_to_color.items():
-        mask = prediction[:, 0] == train_id
-        for i in range(3):
-            out[:, i][mask] = color[i]
-
-    return out
-
+# Metrics
 def compute_iou(pred, target, num_classes=19, ignore_index=255):
     ious = []
     pred = pred.view(-1)
@@ -85,6 +72,7 @@ def compute_dice(pred, target, num_classes=19, ignore_index=255):
 
     return sum(dices) / len(dices) if len(dices) > 0 else 0.0
 
+# Dice loss
 class DiceLoss(nn.Module):
     def __init__(self, ignore_index=255, smooth=1.0):
         super().__init__()
@@ -111,53 +99,28 @@ class DiceLoss(nn.Module):
 
 import torch.nn.functional as F
 
-
+# Test-Time augmentation
 def tta_predict(model, images, scales=(0.75, 1.0, 1.25)):
-    """
-    images: (B, C, H, W)
-    returns: averaged logits (B, num_classes, H, W)
-    """
-    _, _, H, W = images.shape
-    logits_sum = None
+    B, C, H, W = images.shape
+    logits_sum = 0
     n = 0
 
     for scale in scales:
+        x_scaled = F.interpolate(images, scale_factor=scale, mode="bilinear", align_corners=False)
+
         for flip in [False, True]:
-            x = images
+            x = torch.flip(x_scaled, dims=[3]) if flip else x_scaled
 
-            # flip input
-            if flip:
-                x = torch.flip(x, dims=[3])
+            logits = model(x)
+            if isinstance(logits, tuple):
+                logits = logits[0]
 
-            # scale input
-            x = F.interpolate(
-                x,
-                scale_factor=scale,
-                mode="bilinear",
-                align_corners=False
-            )
-
-            # forward
-            outputs = model(x)
-            logits = outputs[0] if isinstance(outputs, tuple) else outputs
-
-            # undo flip
             if flip:
                 logits = torch.flip(logits, dims=[3])
 
-            # resize back
-            logits = F.interpolate(
-                logits,
-                size=(H, W),
-                mode="bilinear",
-                align_corners=False
-            )
+            logits = F.interpolate(logits, size=(H, W), mode="bilinear", align_corners=False)
 
-            if logits_sum is None:
-                logits_sum = logits
-            else:
-                logits_sum = logits_sum + logits
-
+            logits_sum += logits
             n += 1
 
     return logits_sum / n
@@ -175,6 +138,7 @@ def main(args):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # Transforms
     img_transform = Compose([
         ToImage(),
         Resize((384,768)),
@@ -240,15 +204,12 @@ def main(args):
 
             optimizer.zero_grad()
 
-            # outputs, aux_outputs = model(images)
+            outputs, aux_outputs = model(images)
 
-            # main_loss = ce_loss(outputs, labels) + 0.5 * dice_loss_fn(outputs, labels)
-            # aux_loss  = ce_loss(aux_outputs, labels)
+            main_loss = ce_loss(outputs, labels) + 0.5 * dice_loss_fn(outputs, labels)
+            aux_loss  = ce_loss(aux_outputs, labels)
 
-            # loss = main_loss + 0.4 * aux_loss
-
-            outputs = model(images)
-            loss = ce_loss(outputs, labels) + 0.5* dice_loss_fn(outputs, labels)
+            loss = main_loss + 0.4 * aux_loss
 
             loss.backward()
             optimizer.step()
@@ -279,32 +240,6 @@ def main(args):
                 losses.append(loss.item())
                 ious.append(compute_iou(preds, labels))
                 dices.append(compute_dice(preds, labels))
-
-                                
-                if i == 0:
-                    predictions = outputs.softmax(1).argmax(1)
-
-                    predictions = predictions.unsqueeze(1)
-                    labels = labels.unsqueeze(1)
-
-                    predictions = convert_train_id_to_color(predictions)
-                    labels = convert_train_id_to_color(labels)
-
-                    predictions_img = make_grid(predictions.cpu(), nrow=8)
-                    labels_img = make_grid(labels.cpu(), nrow=8)
-
-                    predictions_img = predictions_img.permute(1, 2, 0).numpy()
-                    labels_img = labels_img.permute(1, 2, 0).numpy()
-
-                    predictions_img = predictions_img.astype("uint8")
-                    labels_img = labels_img.astype("uint8")
-
-
-                    wandb.log({
-                        "predictions_image": wandb.Image(predictions_img, caption="Predictions"),
-                        "labels_image": wandb.Image(labels_img, caption="Ground Truth"),
-                    })
-
 
 
         mean_iou = sum(ious) / len(ious)
