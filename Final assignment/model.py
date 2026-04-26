@@ -42,7 +42,7 @@ class Model(nn.Module):
         self.model = segm.deeplabv3_mobilenet_v3_large(
             weights=None,
             weights_backbone=None,  
-            aux_loss=True
+            aux_loss=False
         )
 
         self.model.classifier[-1] = nn.Conv2d(
@@ -51,13 +51,6 @@ class Model(nn.Module):
             kernel_size=1
         )
 
-        if self.model.aux_classifier is not None:
-            self.model.aux_classifier[-1] = nn.Conv2d(
-                in_channels=256,
-                out_channels=n_classes,
-                kernel_size=1
-            )
-
     def forward(self, x):
         out = self.model(x)
-        return out["out"], out["aux"]
+        return out["out"]
