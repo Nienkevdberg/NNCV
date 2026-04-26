@@ -295,10 +295,15 @@ def main(args):
                     predictions_img = predictions_img.permute(1, 2, 0).numpy()
                     labels_img = labels_img.permute(1, 2, 0).numpy()
 
+                    predictions_img = predictions_img.astype("uint8")
+                    labels_img = labels_img.astype("uint8")
+
+
                     wandb.log({
-                        "predictions": [wandb.Image(predictions_img)],
-                        "labels": [wandb.Image(labels_img)],
+                        "predictions_image": wandb.Image(predictions_img, caption="Predictions"),
+                        "labels_image": wandb.Image(labels_img, caption="Ground Truth"),
                     })
+
 
 
         mean_iou = sum(ious) / len(ious)
