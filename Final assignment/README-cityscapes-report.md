@@ -10,17 +10,19 @@ This project focuses on semantic segmentation of urban scenes using the Cityscap
 - U-Net architecture provided in the assignment
 - Serves as reference model
 
-### Peak-Performance Model (PP_model.py)
+### Peak-Performance Model (PP_model.py and PP_train.py)
 - DeepLabv3 with ResNet-101 backbone
 - Loss: Cross-Entropy + Dice Loss
 - Test-Time Augmentation (multi-scale + horizontal flip)
 - Optimized for highest segmentation accuracy
 
-### Efficiency Model (efficiency_model.py)
+### Efficiency Model (efficiency_model.py and efficiency_train.py)
 - DeepLabv3 with MobileNetV3 backbone
 - Lower input resolution (256×512)
 - No auxiliary loss
 - Optimized for speed and low computational cost
+
+In the predict.py, only the resize of the image should be adjusted to the specific model.
 
 ## Requirements
 The project is implemented in Python using PyTorch.
