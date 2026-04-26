@@ -240,14 +240,15 @@ def main(args):
 
             optimizer.zero_grad()
 
-            outputs, aux_outputs = model(images)
+            # outputs, aux_outputs = model(images)
 
-            main_loss = ce_loss(outputs, labels) + 0.5 * dice_loss_fn(outputs, labels)
-            aux_loss  = ce_loss(aux_outputs, labels)
+            # main_loss = ce_loss(outputs, labels) + 0.5 * dice_loss_fn(outputs, labels)
+            # aux_loss  = ce_loss(aux_outputs, labels)
 
-            loss = main_loss + 0.4 * aux_loss
+            # loss = main_loss + 0.4 * aux_loss
 
-            #loss = ce_loss(outputs, labels) + 0.5* dice_loss_fn(outputs, labels)
+            outputs = model(images)
+            loss = ce_loss(outputs, labels) + 0.5* dice_loss_fn(outputs, labels)
 
             loss.backward()
             optimizer.step()
