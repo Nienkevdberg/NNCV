@@ -26,7 +26,7 @@ WORKDIR /app
 COPY predict.py /app/predict.py
 COPY model.py /app/model.py
 COPY model.pt /app/model.pt
-COPY resnet101-63fe2227.pth /app/resnet101-63fe2227.pth
+#COPY resnet101-63fe2227.pth /app/resnet101-63fe2227.pth
 
 
 ENTRYPOINT ["python", "/app/predict.py"]

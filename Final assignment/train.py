@@ -177,7 +177,7 @@ def main(args):
 
     img_transform = Compose([
         ToImage(),
-        Resize((384, 768)),
+        Resize((256, 512)),
         ToDtype(torch.float32, scale=True),
         Normalize((0.485, 0.456, 0.406),
                   (0.229, 0.224, 0.225)),
@@ -185,7 +185,7 @@ def main(args):
 
     target_transform = Compose([
         ToImage(),
-        Resize((384, 768), interpolation=InterpolationMode.NEAREST),
+        Resize((256, 512), interpolation=InterpolationMode.NEAREST),
         ToDtype(torch.int64),
     ])
 
@@ -239,9 +239,6 @@ def main(args):
                 labels = torch.flip(labels, dims=[2])
 
             optimizer.zero_grad()
-
-            #outputs = model(images)
-            #loss = ce_loss(outputs, labels) + 0.3 * dice_loss_fn(outputs, labels)
 
             outputs, aux_outputs = model(images)
 
