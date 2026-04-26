@@ -245,7 +245,7 @@ def main(args):
 
             outputs, aux_outputs = model(images)
 
-            main_loss = ce_loss(outputs, labels) + dice_loss_fn(outputs, labels)
+            main_loss = ce_loss(outputs, labels) + 0.7 * dice_loss_fn(outputs, labels)
             aux_loss  = ce_loss(aux_outputs, labels)
 
             loss = main_loss + 0.4 * aux_loss
@@ -271,7 +271,7 @@ def main(args):
                 if isinstance(outputs, tuple):
                     outputs = outputs[0]
 
-                loss = ce_loss(outputs, labels) + dice_loss_fn(outputs, labels)
+                loss = ce_loss(outputs, labels) + 0.7 * dice_loss_fn(outputs, labels)
 
                 outputs_tta = tta_predict(model, images)
                 preds = torch.argmax(outputs_tta, dim=1)

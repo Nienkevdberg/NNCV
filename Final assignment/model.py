@@ -9,6 +9,7 @@ class Model(nn.Module):
 
         self.model = segm.deeplabv3_resnet101(
             weights=None,
+            weights_backbone=None,
             aux_loss=True
         )
 
