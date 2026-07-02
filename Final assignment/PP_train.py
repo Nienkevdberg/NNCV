@@ -246,8 +246,6 @@ def main(args):
                 labels = labels.to(device).squeeze(1)
 
                 outputs = model(images)
-                if isinstance(outputs, tuple):
-                    outputs = outputs[0]
 
                 loss = ce_loss(outputs, labels) + 0.5 * dice_loss_fn(outputs, labels)
 
@@ -299,6 +297,7 @@ def main(args):
             )
 
             torch.save(model.state_dict(), best_path)
+        wandb.finish()
 
 if __name__ == "__main__":
     parser = ArgumentParser()
