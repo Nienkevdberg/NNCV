@@ -1,10 +1,10 @@
 wandb login
 
-python3 train.py \
+python3 PP_train.py \
     --data-dir ./data/cityscapes \
     --batch-size 16 \
     --epochs 20 \
     --lr 0.000075 \
     --num-workers 10 \
     --seed 42 \
-    --experiment-id "deeplabv3-training" \
+    --experiment-id "PP-train" \
