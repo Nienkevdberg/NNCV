@@ -22,8 +22,10 @@ from PP_model import Model as TeacherModel
 
 # Mapping class IDs to train IDs
 id_to_trainid = {cls.id: cls.train_id for cls in Cityscapes.classes}
-def convert_to_train_id(label_img: torch.Tensor) -> torch.Tensor:
-    return label_img.apply_(lambda x: id_to_trainid[x])
+def convert_to_train_id(label_img):
+    if isinstance(label_img, list):
+        label_img = torch.stack(label_img)
+    return label_img.apply_(lambda x: id_to_trainid.get(int(x), 255))
 
 # Mapping train IDs to color
 train_id_to_color = {cls.train_id: cls.color for cls in Cityscapes.classes if cls.train_id != 255}
@@ -273,8 +275,7 @@ def main(args):
 
                 loss = ce_loss(outputs, labels) + 0.5 * dice_loss_fn(outputs, labels)
 
-                outputs_tta = tta_predict(model, images)
-                preds = torch.argmax(outputs_tta, dim=1)
+                preds = torch.argmax(outputs, dim=1)
 
                 losses.append(loss.item())
                 ious.append(compute_iou(preds, labels))
