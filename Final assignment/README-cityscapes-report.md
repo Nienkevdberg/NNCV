@@ -33,3 +33,5 @@ The project is implemented in Python using PyTorch.
 - numpy
 - pillow
 - wandb
+
+TU/e mail: n.m.v.d.berg@student.tue.nl
