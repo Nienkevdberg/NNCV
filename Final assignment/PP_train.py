@@ -19,11 +19,26 @@ from torchvision.transforms.v2 import (
 
 from PP_model import Model
 
-
+# Mapping class IDs to train IDs
 id_to_trainid = {cls.id: cls.train_id for cls in Cityscapes.classes}
-
 def convert_to_train_id(label_img: torch.Tensor) -> torch.Tensor:
     return label_img.apply_(lambda x: id_to_trainid[x])
+
+# Mapping train IDs to color
+train_id_to_color = {cls.train_id: cls.color for cls in Cityscapes.classes if cls.train_id != 255}
+train_id_to_color[255] = (0, 0, 0)  # Assign black to ignored labels
+
+def convert_train_id_to_color(prediction: torch.Tensor) -> torch.Tensor:
+    batch, _, height, width = prediction.shape
+    color_image = torch.zeros((batch, 3, height, width), dtype=torch.uint8)
+
+    for train_id, color in train_id_to_color.items():
+        mask = prediction[:, 0] == train_id
+
+        for i in range(3):
+            color_image[:, i][mask] = color[i]
+
+    return color_image
 
 # Metrics
 def compute_iou(pred, target, num_classes=19, ignore_index=255):
@@ -221,7 +236,7 @@ def main(args):
         losses, ious, dices = [], [], []
 
         with torch.no_grad():
-            for images, labels in val_loader:
+            for images, labels in enumerate(val_loader):
 
                 labels = convert_to_train_id(labels)
 
@@ -240,6 +255,26 @@ def main(args):
                 losses.append(loss.item())
                 ious.append(compute_iou(preds, labels))
                 dices.append(compute_dice(preds, labels))
+
+                if i == 0:
+                    predictions = outputs.softmax(1).argmax(1)
+
+                    predictions = predictions.unsqueeze(1)
+                    labels = labels.unsqueeze(1)
+
+                    predictions = convert_train_id_to_color(predictions)
+                    labels = convert_train_id_to_color(labels)
+
+                    predictions_img = make_grid(predictions.cpu(), nrow=8)
+                    labels_img = make_grid(labels.cpu(), nrow=8)
+
+                    predictions_img = predictions_img.permute(1, 2, 0).numpy()
+                    labels_img = labels_img.permute(1, 2, 0).numpy()
+
+                    wandb.log({
+                        "predictions": [wandb.Image(predictions_img)],
+                        "labels": [wandb.Image(labels_img)],
+                    }, step=(epoch + 1) * len(train_loader) - 1)
 
 
         mean_iou = sum(ious) / len(ious)
