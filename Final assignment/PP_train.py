@@ -251,8 +251,7 @@ def main(args):
 
                 loss = ce_loss(outputs, labels) + 0.5 * dice_loss_fn(outputs, labels)
 
-                outputs_tta = tta_predict(model, images)
-                preds = torch.argmax(outputs_tta, dim=1)
+                preds = torch.argmax(outputs, dim=1)
 
                 losses.append(loss.item())
                 ious.append(compute_iou(preds, labels))

@@ -2,7 +2,7 @@ wandb login
 
 python3 PP_train.py \
     --data-dir ./data/cityscapes \
-    --batch-size 16 \
+    --batch-size 8 \
     --epochs 20 \
     --lr 0.000075 \
     --num-workers 8 \
