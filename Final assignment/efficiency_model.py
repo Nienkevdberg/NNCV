@@ -1,6 +1,17 @@
 import torch
 import torch.nn as nn
 import torchvision.models.segmentation as segm
+from torchvision.models.segmentation.deeplabv3 import ASPP
+
+class LightASPPHead(nn.Sequential):
+    def __init__(self, in_channels, num_classes, atrous_rates=(12, 24)):
+        super().__init__(
+            ASPP(in_channels, atrous_rates),
+            nn.Conv2d(256, 256, 3, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Conv2d(256, num_classes, 1),
+        )
 
 
 class Model(nn.Module):
@@ -13,11 +24,14 @@ class Model(nn.Module):
             weights_backbone=None,  
             aux_loss=False)
         
-        # Replace last classifier to match number of classes    
-        self.model.classifier[-1] = nn.Conv2d(
-            in_channels=256,
-            out_channels=n_classes,
-            kernel_size=1)
+        in_channels = self.model.classifier[0].convs[0][0].in_channels
+        
+        # Replace last classifier for a ASPP-head   
+        self.model.classifier = LightASPPHead(
+            in_channels=in_channels,
+            num_classes=n_classes,
+            atrous_rates=(12, 24),  
+        )
 
     def forward(self, x):
         out = self.model(x)

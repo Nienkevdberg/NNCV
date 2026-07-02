@@ -17,8 +17,7 @@ from torchvision.transforms.v2 import (
     InterpolationMode,
 )
 
-from efficiency_model import Model as StudentModel
-from PP_model import Model as TeacherModel
+from efficiency_model import Model 
 
 # Mapping class IDs to train IDs
 id_to_trainid = {cls.id: cls.train_id for cls in Cityscapes.classes}
@@ -43,12 +42,7 @@ def convert_train_id_to_color(prediction: torch.Tensor) -> torch.Tensor:
 
     return color_image
 
-def distillation_loss(student_logits, teacher_logits, temperature=2.0):
-    student_log_probs = F.log_softmax(student_logits / temperature, dim=1)
-    teacher_probs = F.softmax(teacher_logits / temperature, dim=1)
 
-    kl = F.kl_div(student_log_probs, teacher_probs, reduction="batchmean")
-    return kl * (temperature ** 2)
 
 # Metrics
 def compute_iou(pred, target, num_classes=19, ignore_index=255):
@@ -202,12 +196,8 @@ def main(args):
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size,
                             shuffle=False, num_workers=args.num_workers)
 
-    model = StudentModel(n_classes=19).to(device)
-    teacher = TeacherModel(n_classes=19).to(device)
-    teacher.load_state_dict(torch.load(args.teacher_checkpoint, map_location=device))
-    teacher.eval()
-    for p in teacher.parameters():
-        p.requires_grad_(False)
+    model = Model(n_classes=19).to(device)
+
 
     ce_loss = nn.CrossEntropyLoss(ignore_index=255)
     dice_loss_fn = DiceLoss()
@@ -236,23 +226,11 @@ def main(args):
             outputs = model(images)
             loss = ce_loss(outputs, labels) + 0.5* dice_loss_fn(outputs, labels)
 
-            with torch.no_grad():
-                teacher_outputs = teacher(images)
-                if isinstance(teacher_outputs, tuple):
-                    teacher_outputs = teacher_outputs[0]
-
-            sup_loss = ce_loss(outputs, labels) + 0.5 * dice_loss_fn(outputs, labels)
-            distill_loss = distillation_loss(outputs, teacher_outputs, temperature=args.temperature)
-
-            loss = sup_loss + args.alpha * distill_loss
-
             loss.backward()
             optimizer.step()
 
             wandb.log({
-                "train_loss": loss.item(),
-                "sup_loss": sup_loss.item(),         
-                "distill_loss": distill_loss.item(),  
+                "train_loss": loss.item(), 
                 "learning_rate": optimizer.param_groups[0]['lr'],
                 "epoch": epoch + 1,
             }, step=epoch * len(train_loader) + i)
@@ -333,9 +311,6 @@ if __name__ == "__main__":
     parser.add_argument("--num-workers", type=int, default=8)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--experiment-id", type=str, default="exp")
-    parser.add_argument("--teacher-checkpoint", type=str, required=True)
-    parser.add_argument("--alpha", type=float, default=0.5)
-    parser.add_argument("--temperature", type=float, default=2.0)
 
     args = parser.parse_args()
     main(args)

@@ -8,4 +8,3 @@ python3 efficiency_train.py \
     --num-workers 8 \
     --seed 42 \
     --experiment-id "E-train" \
-    --teacher-checkpoint checkpoints/E-model.pt
