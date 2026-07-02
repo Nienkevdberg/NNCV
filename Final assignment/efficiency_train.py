@@ -260,7 +260,7 @@ def main(args):
         losses, ious, dices = [], [], []
 
         with torch.no_grad():
-            for images, labels in enumerate(val_loader):
+            for i, (images, labels) in enumerate(val_loader):
 
                 labels = convert_to_train_id(labels)
 
